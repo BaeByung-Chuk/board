@@ -1,0 +1,202 @@
+// HelloSpringApplication.java
+
+package hello.hellospring;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+@MapperScan(basePackages="hello.hellospring")
+public class HelloSpringApplication {
+	public static void main(String[] args){
+		SpringApplication.run(HelloSpringApplication.class, args);
+	}
+}
+
+
+
+// BoardController
+
+package hello.hellospring.controller;
+
+import hello.hellospring.Service.BoardService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+@Controller // 어노테이션을 입력하면 알아서 상단에 import가 된다!
+
+@RequestMapping("/board/**") // "/board/"로 접근하는 url 처리를 이 클래스인 BoardController에서 맡는다고 알려준다.
+@RequiredArgsConstructor // 추가1
+public class BoardController {
+
+    private final BoardService service; //추가2
+
+    @GetMapping("/hello")
+    public String Hello(){
+        return "boards/hello";
+    }
+
+    // 추가3
+    @GetMapping("/test")
+    public String test(Model model) {
+        model.addAttribute("cnt", service.boardCount());
+        model.addAttribute("test", service.boardList());
+
+        return "/boards/hello";
+    }
+
+    // 추가
+    @GetMapping("/main")
+    public String main(Model model) {
+        model.addAttribute("list", service.boardList());
+
+        return "/boards/main";
+    }
+
+    @GetMapping("/view")
+    public String viewBoard(Model model, Long boardId) {
+        model.addAttribute("halo", service.getBoard(boardId));
+
+        return "/boards/view";
+    }
+}
+
+
+// Board
+
+package hello.hellospring.domain;
+
+import java.time.LocalDateTime; // 아래 변수 선언하면 자동 생성됨
+
+public class Board {
+    private Long boardId;
+    private String title;
+    private String content;
+    private String name;
+    private LocalDateTime createDate;
+    private int read;
+    private Long memberId;
+}
+
+
+// BoardMapper.xml
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="hello.hellospring.mapper.BoardMapper">
+    <select id="boardCount" resultType="int"> <!-- id 와 BoardMapper.interface 의 메소드가 같음 -->
+        SELECT count(boardId) AS cnt FROM tbl_board <!-- 게시글 수 반환 -->
+    </select>
+
+    <select id="getList" resultType="hello.hellospring.domain.Board">
+        SELECT * FROM tbl_board <!-- 게시글 리스트 반환 -->
+    </select>
+
+    <select id="getBoard" parameterType="Long" resultType="hello.hellospring.domain.Board">
+        SELECT * FROM tbl_board where boardId=#{boardId};
+    </select>
+</mapper>
+
+
+// BoardService.java
+
+package hello.hellospring.Service;
+
+import lombok.RequiredArgsConstructor;
+import hello.hellospring.domain.Board;
+import hello.hellospring.mapper.BoardMapper;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service // 서비스 역할을 하는 것임을 명시
+@RequiredArgsConstructor // Mapper 생성자를 사용할 수 있게 함
+@Transactional(readOnly = true)
+public class BoardService {
+    private final BoardMapper boardMapper;
+
+    public int boardCount() {
+        return boardMapper.boardCount(); // 게시글 수 반환
+    }
+
+    public List<Board> boardList() {
+        return boardMapper.getList(); // 게시글 리스트 반환
+    }
+
+    public Board getBoard(Long boardId) {
+        return boardMapper.getBoard(boardId);
+    }
+}
+
+
+// hello.html
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>테스트 페이지</title>
+    </head>
+    <body>
+        <h1>안녕하세요!</h1>
+        <h1>테스트페이지!</h1>
+        <h1>[[${cnt}]]</h1> // cnt : 게시글 수
+        <h1>[[${test[0].title}]]</h1> <!-- test : 게시글 리스트, test[0].title : 첫번째 게시글 제목 -->
+    </body>
+</html>
+
+
+// main.html
+
+<!DOCTYPE html>
+<html xmlns xmlns:th="http://www.w3.org/1999/xhtml" : th="http://www.thymeleaf.org">
+  <head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+    <meta charset="UTF-8">
+    <title>Title</title>
+  </head>
+  <body>
+    <div class="container">
+      <table class="table table-hover">
+        <thead>
+        <th>글번호</th>
+        <th>작성자</th>
+        <th>제목</th>
+        <th>조회수</th>
+        </thead>
+        <tr th:each="list :${list}"> // 타임리프를 이용해 리스트 형식의 데이터를 가공할 수 있도록 함.
+          <td>[[${list.boardId}]]</td>
+          <td>[[${list.name}]]</td>
+          <td>[[${list.title}]]</td>
+          <td>[[${list.read}]]</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>
+
+
+// view.html
+
+<!DOCTYPE html>
+<html xmlns xmlns:th="http://www.w3.org/1999/xhtml" : th="http://www.thymeleaf.org">
+  <head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+    <meta charset="UTF-8">
+    <title>Title</title>
+  </head>
+  <meta charset="UTF-8">
+  <title>Title</title>
+  <body>
+    <div class="container">
+      <p>글번호 : [[${halo.boardId}]]</p>
+      <p>제목 : [[${halo.title}]]</p>
+      <p>작성자 : [[${halo.name}]]</p>
+      내용 : <textarea class="form-control" th:text="${halo.content}"></textarea>
+      <p>조회수 : [[${halo.read}]]</p>
+    </div>
+  </body>
+</html>
