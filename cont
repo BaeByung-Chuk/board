@@ -14,7 +14,6 @@ public class HelloSpringApplication {
 }
 
 
-
 // BoardController
 
 package hello.hellospring.controller;
