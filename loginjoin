@@ -1,0 +1,113 @@
+// home.jsp
+
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<html>
+<head>
+	<title>홈 페이지</title>
+</head>
+<body>
+<h1>
+	Hello <span>${username}</span>
+</h1>
+</body>
+</html>
+
+
+// login.jsp
+
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ taglib uri="http://java.sun.com/jstl/core" prefix="c" %>
+<%@ taglib uri="http://www.springframework.org/security/tags" prefix="sec" %>
+<html>
+<head>
+	<title>로그인 페이지</title>
+</head>
+<body>
+<form action="/login" method="post">
+	<sec:csrfInput/>
+	<input type="text" name="id" placeholder="아이디" />
+	<input type="password" name="password" placeholder="비밀번호" />
+	<button>로그인</button>
+</form>
+</body>
+</html>
+
+
+// join.jsp
+
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ taglib uri="http://java.sun.com/jstl/core" prefix="c" %>
+<%@ taglib uri="http://www.springframework.org/security/tags" prefix="sec" %>
+<html>
+<head>
+	<title>회원가입 페이지</title>
+</head>
+<body>
+<form action="/join" method="post">
+	<sec:csrfInput/>
+	<input type="text" name="id" placeholder="아이디" />
+	<input type="password" name="password" placeholder="비밀번호" />
+	<input type="password" name="confirmPassword" placeholder="비밀번호 확인" />
+	<input type="email" name="email" placeholder="이메일" />
+	<input type="text" name="phone" placeholder="전화번호(-없이)" />
+	<button>회원가입</button>
+</form>
+</body>
+</html>
+
+
+// HomeController.java
+
+@Controller
+public class HomeController {
+    @Autowired
+    AccountServiceImpl accountService;
+
+    @RequestMapping(value = "/login", method = RequestMethod.GET)
+    public String goLogin(){
+        return "login";
+    }
+
+    @RequestMapping(value = "/join", method = RequestMethod.GET)
+    public String goJoin(){
+        return "join";
+    }
+
+    @RequestMapping(value = "/join", method = RequestMethod.POST)
+    public String join(){
+        account.setPassword(new BCryptPasswordEncoder().encode(account.getPassword()));
+        accountService.join(account);
+        return "login";
+    }
+
+    @RequestMapping(value = "/", method = RequestMethod.GET)
+    public String goHome(Model model, Authentication authentication){
+        if(authentication != null){
+            SecurityAccount account = (SecurityAccount)authentication.getPrincipal();
+            model.addAttribute("username", account.getUsername());
+        }
+        return "home";
+    }
+}
+
+
+// AccountService.java
+
+public interface AccountService {
+    void join(Account account);
+}
+
+
+// AccountServiceImpl.java
+
+@Service
+public class AccountServiceImpl implements AccountService{
+    @Autowired
+    AccountMapper accountMapper;
+
+    @Override
+    public void join(Account account){
+        accountMapper.insertAccount(account);
+    }
+}
